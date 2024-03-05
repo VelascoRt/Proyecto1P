@@ -5,4 +5,9 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 
 app = FastAPI()
-app.title = "Venta de computadoras"
+app.title = "Biblioteca digital"
+
+libros = {
+    
+}
+
