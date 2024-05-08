@@ -1,11 +1,17 @@
-import uvicorn
-from fastapi import FastAPI, Body, Path
-from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from fastapi import FastAPI
+from middlewares.error_handler import ErrorHandler
+from routers.book import book_router
+
+from config.database import engine, Base
 
 app = FastAPI()
 app.title = "Biblioteca digital"
+app.add_middleware(ErrorHandler)
+app.include_router(book_router)
+
+Base.metadata.create_all(bind=engine)
+
+"""
 class Libros(BaseModel):
 
     titulo: str =  Field(default = "Titulo del libro", min_length = 5, max_length=100)
@@ -27,31 +33,9 @@ class Libros(BaseModel):
             }
         }
 
-categorias = ["Novela","Poesia","Cuento","Ensayo","Drama","Ciencia ficcion", "Fantasia",
-              "Misterio","Romance","Terror","Aventura","Historia","Biografia","Autoayuda",
-              "Politica","Filosofia","Economia","Ciencia","Psicologia","Religion","Educacion",
-              "Cocina","Musica","Entretenimiento", "Ficcion"]
+categorias = []
 
-libros = [
-    {
-    "titulo":"El cuervo",
-    "autor": "Edgar Allan Poe",
-    "año": "1948",
-    "categoria": categorias[4],
-    "codigo": 0,
-    "numeroDePaginas" : "500"
-
-},
-{
-    "titulo":"Persona normal",
-    "autor": "Benito Taibo",
-    "año": "2011",
-    "categoria": categorias[24],
-    "codigo": 1,
-    "numeroDePaginas" : "248"
-
-}
-]
+libros = []
 
 #Mensaje de entrada
 @app.get('/', tags = ['home'])
@@ -73,7 +57,7 @@ def get_libro(codigo: int) -> Libros:
 
 #Conseguir libros por categorias.
 @app.get('/libreria/', tags=['libreria'], response_model=List[Libros])
-def get_libros_by_categoria(categoria: str):
+def get_libros_by_categoria(categoria: str) -> List[Libros]:
    librosMarca = []
    for item in libros:
         if item["categoria"] == categoria:
@@ -84,7 +68,7 @@ def get_libros_by_categoria(categoria: str):
 
 #Crear libros en la lista de libros.
 @app.post('/libros/', tags=['libreria'], response_model=List[Libros])
-def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()):
+def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
             return JSONResponse(status_code = 409,content= {"message" : "El código ya está en uso."})
@@ -98,12 +82,12 @@ def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(
                 "codigo": codigo,
                 "numeroDePaginas" : numeroDePaginas
             })
-            return JSONResponse(status_code=200,content= {"message" : "Se ha registrado la pelicula"})
+            return JSONResponse(status_code=200,content= {"message" : "Se ha registrado el libro"})
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"}) 
 
 #Actualizar libros.
 @app.put('/libreria/{id}', tags=['libreria'], response_model=List[Libros]) 
-def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> dict: 
+def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse: 
     for item in libros:
         if item["codigo"] == codigo:
             for i in range(0,len(categorias)):
@@ -118,7 +102,7 @@ def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: 
 
 #Eliminar libros de la lista de libros.
 @app.delete('/libreria/{id}', tags=['libreria'], response_model=List[Libros])
-def delete_libros(codigo: int):
+def delete_libros(codigo: int) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
             libros.remove(item)
@@ -127,12 +111,12 @@ def delete_libros(codigo: int):
 
 #Conseguir todas las categorias
 @app.get('/categorias', tags=['categorias'])
-def get_categorias():
+def get_categorias() -> JSONResponse:
     return JSONResponse(status_code = 200, content=categorias)
 
 #Crear categorias en la lista de categorias
 @app.post('/categorias', tags=['categorias'])
-def create_categorias(categoria:str):
+def create_categorias(categoria:str) -> JSONResponse:
     for category in categorias:
         if category == categoria:
             return JSONResponse(status_code=409, content={"message" : "La categoria ya existe."})
@@ -141,7 +125,7 @@ def create_categorias(categoria:str):
 
 #Actualizar categorias de la lista de categorias.
 @app.put('/categorias', tags=['categorias'])
-def update_categorias(viejaCategoria:str, nuevaCategoria:str):
+def update_categorias(viejaCategoria:str, nuevaCategoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categorias[i] == viejaCategoria:
             categorias[i] = nuevaCategoria
@@ -153,7 +137,7 @@ def update_categorias(viejaCategoria:str, nuevaCategoria:str):
 
 #Eliminar categorias de la lista de categorias
 @app.delete('/categorias', tags=['categorias'])
-def delete_categorias(categoria:str):
+def delete_categorias(categoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categoria == categorias[i]:
             for item in libros:
@@ -162,3 +146,4 @@ def delete_categorias(categoria:str):
             categorias.remove(categorias[i])
             return JSONResponse(status_code=200, content={"message" : "La categoria se ha eliminado exitosamente"}) 
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})    
+"""
