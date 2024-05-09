@@ -1,17 +1,23 @@
-from fastapi import FastAPI
+from fastapi import FastAPI,Body, Depends
 from middlewares.error_handler import ErrorHandler
 from routers.book import book_router
+from fastapi.responses import JSONResponse, HTMLResponse
+from pydantic import BaseModel, Field
+from typing import Optional, List
+from config.database import Session
+from models.books import Books as BookModel
+from middlewares.jwt_bearer import JWTBearer
+from fastapi.encoders import jsonable_encoder
 
 from config.database import engine, Base
 
 app = FastAPI()
 app.title = "Biblioteca digital"
-app.add_middleware(ErrorHandler)
-app.include_router(book_router)
+
+# app.add_middleware(ErrorHandler)
+# app.include_router(book_router)
 
 Base.metadata.create_all(bind=engine)
-
-"""
 class Libros(BaseModel):
 
     titulo: str =  Field(default = "Titulo del libro", min_length = 5, max_length=100)
@@ -37,18 +43,32 @@ categorias = []
 
 libros = []
 
+#User
+class User(BaseModel):
+    email:str
+    password:str
+
+#Login
+@book_router.post('/login', tags = ['auth'])
+def login(user: User):
+    if user.email == "eds@gmail.com" and user.password == "Contraseña":
+        token: str = create_token(user.dict())
+        return JSONResponse(status_code=200, content=token)
+
 #Mensaje de entrada
 @app.get('/', tags = ['home'])
 def message():
     return HTMLResponse('<h1>Libreria digital<h1>')
 
 #Conseguir todos los libros
-@app.get('/libreria', tags=['libreria'], response_model=List[Libros])
+@app.get('/libreria', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libros() -> List[Libros]:
-    return JSONResponse(status_code = 200, content=libros)
+    db = Session()
+    result = db.query(BookModel).all()
+    return JSONResponse(status_code = 200, content= jsonable_encoder(result))
 
 #Conseguir un libro por codigo
-@app.get('/libreria/{codigo}', tags=['libreria'], response_model=List[Libros])
+@app.get('/libreria/{codigo}', tags=['libreria'], response_model=List[Libros],dependencies=[Depends(JWTBearer())])
 def get_libro(codigo: int) -> Libros:
     for item in libros:
         if item["codigo"] == codigo:
@@ -56,7 +76,7 @@ def get_libro(codigo: int) -> Libros:
     return JSONResponse(status_code = 404, content=[])
 
 #Conseguir libros por categorias.
-@app.get('/libreria/', tags=['libreria'], response_model=List[Libros])
+@app.get('/libreria/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libros_by_categoria(categoria: str) -> List[Libros]:
    librosMarca = []
    for item in libros:
@@ -67,7 +87,7 @@ def get_libros_by_categoria(categoria: str) -> List[Libros]:
    return JSONResponse(status_code = 200, content=librosMarca)
 
 #Crear libros en la lista de libros.
-@app.post('/libros/', tags=['libreria'], response_model=List[Libros])
+@app.post('/libros/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
@@ -86,7 +106,7 @@ def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"}) 
 
 #Actualizar libros.
-@app.put('/libreria/{id}', tags=['libreria'], response_model=List[Libros]) 
+@app.put('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())]) 
 def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse: 
     for item in libros:
         if item["codigo"] == codigo:
@@ -101,7 +121,7 @@ def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: 
             return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})
 
 #Eliminar libros de la lista de libros.
-@app.delete('/libreria/{id}', tags=['libreria'], response_model=List[Libros])
+@app.delete('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def delete_libros(codigo: int) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
@@ -110,12 +130,12 @@ def delete_libros(codigo: int) -> JSONResponse:
     return JSONResponse(status_code=404, content={"message:":"No se ha encontrado el libro"})
 
 #Conseguir todas las categorias
-@app.get('/categorias', tags=['categorias'])
+@app.get('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def get_categorias() -> JSONResponse:
     return JSONResponse(status_code = 200, content=categorias)
 
 #Crear categorias en la lista de categorias
-@app.post('/categorias', tags=['categorias'])
+@app.post('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def create_categorias(categoria:str) -> JSONResponse:
     for category in categorias:
         if category == categoria:
@@ -124,7 +144,7 @@ def create_categorias(categoria:str) -> JSONResponse:
     return JSONResponse(status_code=200, content={"message" : "Se ha registrado la categoria " + categoria + " en la lista."})
 
 #Actualizar categorias de la lista de categorias.
-@app.put('/categorias', tags=['categorias'])
+@app.put('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def update_categorias(viejaCategoria:str, nuevaCategoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categorias[i] == viejaCategoria:
@@ -136,7 +156,7 @@ def update_categorias(viejaCategoria:str, nuevaCategoria:str) -> JSONResponse:
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})
 
 #Eliminar categorias de la lista de categorias
-@app.delete('/categorias', tags=['categorias'])
+@app.delete('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def delete_categorias(categoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categoria == categorias[i]:
@@ -146,4 +166,3 @@ def delete_categorias(categoria:str) -> JSONResponse:
             categorias.remove(categorias[i])
             return JSONResponse(status_code=200, content={"message" : "La categoria se ha eliminado exitosamente"}) 
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})    
-"""

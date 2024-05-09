@@ -4,22 +4,9 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from config.database import Session
 from models.books import Books as BookModel
-from jwt_manager import create_token
-from middlewares.jwt_bearer import JWTBerrer
+from middlewares.jwt_bearer import JWTBearer
 
 book_router = APIRouter()
-
-#User
-class User(BaseModel):
-    email:str
-    password:str
-
-#Login
-@book_router.post('/login', tags = ['auth'])
-def login(user: User):
-    if user.email == "eds@gmail.com" and user.password == "Contraseña":
-        token: str = create_token(user.dict())
-        return JSONResponse(status_code=200, content=token)
 
 #Class libros
 class Libros(BaseModel):
@@ -54,12 +41,12 @@ def message():
     return HTMLResponse('<h1>Libreria digital<h1>')
 
 #Conseguir todos los libros
-@book_router.get('/libreria', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())])
+@book_router.get('/libreria', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libros() -> List[Libros]:
     return JSONResponse(status_code = 200, content=libros)
 
 #Conseguir un libro por codigo
-@book_router.get('/libreria/{codigo}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())])
+@book_router.get('/libreria/{codigo}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libro(codigo: int) -> Libros:
     for item in libros:
         if item["codigo"] == codigo:
@@ -67,7 +54,7 @@ def get_libro(codigo: int) -> Libros:
     return JSONResponse(status_code = 404, content=[])
 
 #Conseguir libros por categorias.
-@book_router.get('/libreria/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())])
+@book_router.get('/libreria/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libros_by_categoria(categoria: str) -> List[Libros]:
    librosMarca = []
    for item in libros:
@@ -78,7 +65,7 @@ def get_libros_by_categoria(categoria: str) -> List[Libros]:
    return JSONResponse(status_code = 200, content=librosMarca)
 
 #Crear libros en la lista de libros.
-@book_router.post('/libros/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())])
+@book_router.post('/libros/', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
@@ -97,7 +84,7 @@ def create_libros(codigo: int = Body(), titulo: str = Body(), autor: str = Body(
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"}) 
 
 #Actualizar libros.
-@book_router.put('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())]) 
+@book_router.put('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())]) 
 def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: str = Body(), categoria: str = Body(), numeroDePaginas: str = Body()) -> JSONResponse: 
     for item in libros:
         if item["codigo"] == codigo:
@@ -112,7 +99,7 @@ def update_libros(codigo: int, titulo: str = Body(), autor: str = Body(), año: 
             return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})
 
 #Eliminar libros de la lista de libros.
-@book_router.delete('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBerrer())])
+@book_router.delete('/libreria/{id}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def delete_libros(codigo: int) -> JSONResponse:
     for item in libros:
         if item["codigo"] == codigo:
@@ -121,12 +108,12 @@ def delete_libros(codigo: int) -> JSONResponse:
     return JSONResponse(status_code=404, content={"message:":"No se ha encontrado el libro"})
 
 #Conseguir todas las categorias
-@book_router.get('/categorias', tags=['categorias'] , dependencies=[Depends(JWTBerrer())])
+@book_router.get('/categorias', tags=['categorias'] , dependencies=[Depends(JWTBearer())])
 def get_categorias() -> JSONResponse:
     return JSONResponse(status_code = 200, content=categorias)
 
 #Crear categorias en la lista de categorias
-@book_router.post('/categorias', tags=['categorias'], dependencies=[Depends(JWTBerrer())])
+@book_router.post('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def create_categorias(categoria:str) -> JSONResponse:
     for category in categorias:
         if category == categoria:
@@ -135,7 +122,7 @@ def create_categorias(categoria:str) -> JSONResponse:
     return JSONResponse(status_code=200, content={"message" : "Se ha registrado la categoria " + categoria + " en la lista."})
 
 #Actualizar categorias de la lista de categorias.
-@book_router.put('/categorias', tags=['categorias'], dependencies=[Depends(JWTBerrer())])
+@book_router.put('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def update_categorias(viejaCategoria:str, nuevaCategoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categorias[i] == viejaCategoria:
@@ -147,7 +134,7 @@ def update_categorias(viejaCategoria:str, nuevaCategoria:str) -> JSONResponse:
     return JSONResponse(status_code = 404,content={"message:":"La categoria no existe"})
 
 #Eliminar categorias de la lista de categorias
-@book_router.delete('/categorias', tags=['categorias'], dependencies=[Depends(JWTBerrer())])
+@book_router.delete('/categorias', tags=['categorias'], dependencies=[Depends(JWTBearer())])
 def delete_categorias(categoria:str) -> JSONResponse:
     for i in range(0,len(categorias)):
         if categoria == categorias[i]:
