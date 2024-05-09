@@ -48,6 +48,8 @@ def get_libros() -> List[Libros]:
 #Conseguir un libro por codigo
 @book_router.get('/libreria/{codigo}', tags=['libreria'], response_model=List[Libros], dependencies=[Depends(JWTBearer())])
 def get_libro(codigo: int) -> Libros:
+    db = Session()
+    
     for item in libros:
         if item["codigo"] == codigo:
             return JSONResponse(status_code = 200, content=item)
